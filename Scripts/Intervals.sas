@@ -64,18 +64,22 @@ run;
 /* This data will be used to predict future price n moves ahead.
 Required variables for model: tickfreq, some measurement of volume, price after/before/change? */
 data testi;
-    set STOCK.IntervalData1;
-    tickfeq=dif(time);
-    price_dif=dif(price);
+    set STOCK.IntervalData1 (drop = date);
+    tickfreq=dif(time);
+    log_price = log(price);
+    lag_log_price = lag(log_price);
+    diff_price = dif(price);
+    lag_diff_price = dif(log_price);
     log_volume=log(volume);
-    tick_N=_N_;
+    lag_log_volume = lag(log_volume);
     
     /* For plotting bubbleplots:*/
-	tickfeq_2 = 1/tickfeq;
+	tickfreq_2 = 1/tickfreq;
 
     /* If this was divided by zero, then tick frequency is intensive */
-	if tickfeq_2 = . then
-        tickfeq_2=100;
+	if tickfreq_2 = . then
+        tickfreq_2=100;
+      
 run;
 
 TITLE 'Tick frequency 3.3.2014, first 500 ticks';
@@ -91,14 +95,14 @@ TITLE 'Tick frequency, Bubble plot';
 TITLE2 'First 500 ticks, 3.3.2014';
 
 proc sgplot data=testi (where=(tick_N <=500));
-    bubble x=time y=price size=tickfeq_2 / LEGENDLABEL='Tick intensity' 
+    bubble x=time y=price size=tickfreq_2 / LEGENDLABEL='Tick intensity' 
         NOOUTLINE;
     series x=time y=price / markers;
 run;
 
 TITLE2 'First 100 ticks, 4.3.2014';
 proc sgplot data=testi (where=(tick_N <=100));
-    bubble x=time y=price size=tickfeq_2 / LEGENDLABEL='Tick intensity' 
+    bubble x=time y=price size=tickfreq_2 / LEGENDLABEL='Tick intensity' 
         NOOUTLINE;
     series x=time y=price / markers;
 run;
@@ -108,7 +112,7 @@ run;
 TITLE2 'All observations, 3.3.2014';
 
 proc sgplot data=testi (where=(tick_N <=30000));
-    bubble x=time y=price size=tickfeq_2 / LEGENDLABEL='Tick intensity' 
+    bubble x=time y=price size=tickfreq_2 / LEGENDLABEL='Tick intensity' 
         NOOUTLINE;
     series x=time y=price / Y2AXIS;
 run;
@@ -121,7 +125,7 @@ proc sgplot data=testi (where=(volume<=2000));
 run;
 
 /* Export csv-file for modelling */
-proc export data = testi
+proc export data = testi (drop = tickfreq_2)
    outfile='/folders/myfolders/StockData/intervaldata1.csv'
    dbms=csv
    replace;
