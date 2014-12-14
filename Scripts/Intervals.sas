@@ -120,4 +120,9 @@ proc sgplot data=testi (where=(volume<=2000));
     histogram volume / BINSTART=0 BINWIDTH=100;
 run;
 
-/* Plot tick frequency and price before move. */
+/* Export csv-file for modelling */
+proc export data = testi
+   outfile='/folders/myfolders/StockData/intervaldata1.csv'
+   dbms=csv
+   replace;
+run;
