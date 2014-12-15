@@ -6,12 +6,20 @@ tickdata <- read.csv('C:/myfolders/StockData/intervaldata1.csv')
 # Predict with model: log_price ~ lag_log_price + tickfeq + lag_log_volume
 # Current price is explained by tick frequency, past prices and past volume
 
+# parameters:
+param_limit <- 0.05				# stop-loss limit
+param_ci <- 0.95				# confidence intervals
+param_buy <- 13.15				# buy price/current price
+param_adjust_buy <- 0.005		# price adjustment for current price
+param_n <- 10					# forecast n.ahead
+
 dim(tickdata)
 head(tickdata)
 
 # Vector autoregression
 library(vars)
 
+# Loop over this data to simulate feed / Start of loop here
 tickdata_c <- tickdata[1:100,c(4:5,8:9)]
 
 # Remove days 1st transaction / tick
@@ -26,7 +34,7 @@ tickvar1 <- VAR(tickseries, p = 2, type = "none")
 
 plot(tickvar1)
 
-tickvar1p <- predict(tickvar1, n.ahead = 10, ci = 0.95)
+tickvar1p <- predict(tickvar1, n.ahead = param_n, ci = param_ci)
 fanchart(tickvar1p)
 
 # Forecasted values for price
@@ -35,20 +43,19 @@ tickvar1p$fcst$log_price
 
 # exp(log(price) = price
 exp(tickvar1p$fcst$log_price[,1])
-tickdata$Price[100:110]
+tickdata$Price[101:110]
 
 resid1 <- tickdata$Price[101:110] - exp(tickvar1p$fcst$log_price[,1])
+
+# Lower 5% limit
+exp(tickvar1p$fcst$log_price[,1] - tickvar1p$fcst$log_price[,4])
 
 # Looking good...
 plot(1:10, resid1, type='l')
 abline(h=0)
 
-# predict log returns and risk n.ahead = 10 with ci = 0.95
+# predict log returns and risk n.ahead = param_n with ci = param_ci
 
-# Other methods:
+# If result exceeds stop-loss limit then sell, else continue to monitor. / End of loop
 
-# Try regression
-
-# Try simple ARIMA (use one-minute or one-second tick data)
-
-# Try GARCH
+# Print out results: Profit/Loss, Log price, parameters and compare forecast to real data
