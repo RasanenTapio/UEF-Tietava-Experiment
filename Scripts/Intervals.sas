@@ -5,6 +5,8 @@
 Check File Format -document for correct informats. */
 libname STOCK "/folders/myfolders/StockData";
 
+%LET import_name = tickdata.csv;
+
 /* Select informats according to description:
 
 Date 					MM/DD/YYYY
@@ -21,7 +23,7 @@ Source of Trade			Character (1)
 */
 data STOCK.TickData;
     format Date DDMMYYP10. Time Time12.;
-    infile '/folders/myfolders/StockData/tickdata.csv' dlm=',';
+    infile "/folders/myfolders/StockData/&import_name" dlm=',';
     input Date :MMDDYY10. Time :hhmmss12. Price :14.7 Volume :9. 
         ExchangeCode :$2 SalesCondition :$4. CorrectionIndicator :$2. 
         SequenceNumber :9. TradeStopIndicator :$1. SourceOfTrade :$1.;
@@ -29,8 +31,8 @@ run;
 
 TITLE 'DESCRIPTIVE STATISTICS OF PRICE AND VOLUME';
 
-proc means data=STOCK.TickData MAX MIN MEAN MEDIAN STD;
-    VAR Price Volume;
+proc means data=STOCK.TickData  MAX MIN MEAN MEDIAN STD;
+	VAR Price Volume;
 run;
 
 /* First date is 3.3.2014, last is 5.3.2014 */
