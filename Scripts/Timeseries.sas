@@ -122,7 +122,38 @@ proc sgplot data=test_tick (obs=100);
     series x=low_min y=count / markers;
 run;
 
+data test_minutedata (rename=time=low_min);
+	set STOCK.MinuteData (where=(date='03mar2014'd));
+run;
+
 /* proc sort data and merge by time */
+proc sort data = test_tick; by low_min; run;
+proc sort data = test_minutedata; by low_min; run;
 
+data test_comb;
+	merge test_tick(in = aa) test_minutedata (in = bb);
+	by low_min;
+	if aa and bb;
+run;
 
+/* Plot some series to test */
 
+proc sgplot data=test_comb (obs=100);
+	TITLE 'Number of ticks per minute for stock x';
+	* highlow x=low_min high=high_p low=low_p / close = close_p;
+	series x=low_min y=count/ y2axis ;
+	series x=low_min y=open_p;
+run;
+
+proc sgplot data= test_comb (obs=20);
+   title "Number of ticks and closing price for stock x";
+   vbar low_min/ response=count ;
+   vline low_min/ response=close_p y2axis;
+run;
+
+/* Export csv-file for modelling and plotting */
+proc export data = test_comb
+   outfile='/folders/myfolders/StockData/stockdata.csv'
+   dbms=csv
+   replace;
+run;
