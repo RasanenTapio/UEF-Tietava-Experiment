@@ -2,33 +2,44 @@
 # Use sample data if no real tick data is available
 # Use previous day's data to train model
 
-tickdata <- read.csv('C:/myfolders/StockData/intervaldata1.csv')
+tickdata <- read.csv('C:/myfolders/StockData/stockdata14081_1minute.csv')
 
-# Predict with model: log_price ~ lag_log_price + tickfeq + lag_log_volume
-# Current price is explained by tick frequency, past prices and past volume
+# Create new variables
+tickdata$id <- 1:length(tickdata$time)
+tickdata$log_price <- log(tickdata$close)
+tickdata$diff_price <- c(NA, diff(tickdata$log_price))
+# Add +1 to every value of tick freq
+tickdata$tickfreq <- tickdata$tickfreq + 1
+tickdata$log_tickfreq <- log(tickdata$tickfreq)
+tickdata$log_volume <- log(tickdata$volume)
+tickdata$diff_volume <- c(NA, diff(tickdata$log_volume))
 
-# parameters:
-param_limit <- 0.05				# stop-loss limit
-param_ci <- 0.95				# confidence intervals
-param_buy <- 13.00				# buy price/current price
-param_adjust_buy <- 0.005		# price adjustment for current price
-param_n <- 10					# forecast n.ahead
-
+# Validate after creating new variables
 dim(tickdata)
 head(tickdata)
+
+# Price is explained by tick frequency, past price changes and past volume changes
+# Predict with variables: diff_price, diff_volume and log_tickfreq
+
+# Parameters:
+param_limit <- -0.05			# stop-loss limit
+param_ci <- 0.95				# confidence intervals
+param_buy_time <- 3				# time stock was bought
+param_adjust_buy <- 0.005		# price adjustment for current price
+param_n <- 10					# forecast n.ahead
 
 # Vector autoregression
 library(vars)
 
 # Loop over this data to simulate feed / Start of loop here
-tickdata_c <- tickdata[1:100,c(4:5,8:9)]
+tickdata_c <- tickdata[3:100,c("time","diff_price", "log_tickfreq", "diff_volume", "id")]
 
 # Remove days 1st transaction / tick
-tickseries <- as.ts(tickdata_c[-1,-4])
+tickseries <- as.ts(tickdata_c[,c("diff_price", "log_tickfreq", "diff_volume")])
 
-# Try vector autoregression 
+# Try vector autoregression
 
-tickvar1 <- VAR(tickseries, p = 3, type = "none")
+tickvar1 <- VAR(tickseries, p = 1, type = "both")
 #VAR(tickseries, p = 2, type = "const")
 #tickvar1 <- VAR(tickseries, p = 2, type = "trend")
 #tickvar1 <- VAR(tickseries, p = 2, type = "both")
@@ -39,32 +50,15 @@ AIC(tickvar1)
 tickvar1p <- predict(tickvar1, n.ahead = param_n, ci = param_ci)
 fanchart(tickvar1p)
 
-# Residuals looking good...
-plot(1:10, resid1, type='l')
-abline(h=0)
-
 # Forecasted values for price
-dim(tickvar1p$fcst$log_price)
-tickvar1p$fcst$log_price
+tickvar1p$fcst$diff_price
 
-# exp(log(price) = price
-exp(tickvar1p$fcst$log_price[,1])
-tickdata$Price[101:110]
+# Subset by id >= buy time to get log returns
+log_returns <- subset(tickdata_c, id >= param_buy_time)
+# Sum historical and predicted log returns to get something to compare with stop-loss limit
+log_returns <- sum(log_returns$diff_price) + sum(tickvar1p$fcst$diff_price[,1])
 
-resid1 <- tickdata$Price[101:110] - exp(tickvar1p$fcst$log_price[,1])
-
-# Lower 5% limit
-exp(tickvar1p$fcst$log_price[,1] - tickvar1p$fcst$log_price[,4])
-
-# Returns with param_buy price
-returns <- exp(tickvar1p$fcst$log_price[,1] - tickvar1p$fcst$log_price[,4]) - rep(param_buy,10)
-
-min(returns) < -param_limit # FALSE: Does not exceed stop-loss limit, but:
-
-plot(1:10, returns)
-
-# predict log returns and risk n.ahead = param_n with ci = param_ci
-
-# If result exceeds stop-loss limit then sell, else continue to monitor. / End of loop
+# If result exceeds stop-loss limit then send out signal, else continue to monitor. / End of loop
+log_returns  < log(1+param_limit)
 
 # Print out results: Profit/Loss, Log price, parameters and compare forecast to real data
