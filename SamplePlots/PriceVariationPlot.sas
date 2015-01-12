@@ -11,6 +11,9 @@ proc sgplot data=&plotdata;
     needle x=time y=volume /y2axis lineattrs=(color=blue thickness=7pt) 
         legendlabel='Volume';
     yaxis min=43 grid;
+    refline '11:49:00't / axis=x LABEL='Buy' LABELLOC=inside;
+    refline '12:44:00't / axis=x LABEL='First alert' LABELLOC=inside;
+    refline '13:58:00't / axis=x LABEL='Second alert' LABELLOC=inside;
     y2axis display=(noticks novalues nolabel) offsetmax=0.6;
 run;
 

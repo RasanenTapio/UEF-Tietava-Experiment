@@ -1,33 +1,54 @@
-/* Take a tick data (inhomogeneous time series) of some symbol  and transform it to time series.
-   Calculate intervals between ticks and present them as tick frequency */
-   
-/* Copy csv-file to your SAS University Edition or SAS Studio folder.
-Check File Format -document for correct informats. */
+/* Generate data with Timeseries.sas */
 libname STOCK "/folders/myfolders/StockData";
+ods graphics on / width=10.5in height=4.5in;
 
-%LET import_name = tickdata.csv;
-
-/* Select informats according to description:
-
-Date 					MM/DD/YYYY
-Time					HH:MM:SS.mmm
-Price					Number (14,7)
-Volume					Integer (9)
-Exchange Code			Character (2)
-Sales Condition			Character (up to 4)
-Correction Indicator	Character (up to 2)
-Sequence				Number Integer (9)
-Trade Stop Indicator	Character (1)
-Source of Trade			Character (1)
+%LET plotdata = STOCK.stockdata14081_5minute(where=('9:00:00't <= Time <= '16:00:00't));
+/* available 1, 5, 10, 15, 30 and 60 minute intervals:
+	stockdata14081_1minute
+	stockdata14081_5minute
+	stockdata14081_10minute
+	stockdata14081_15minute
+	stockdata14081_30minute
+	stockdata14081_60minute
+with variables:
+	time
+	time_up
+	tickfreq
+	open
+	close
+	high
+	low
 
 */
-data STOCK.TickData;
-    format Date DDMMYYP10. Time Time12.;
-    infile "/folders/myfolders/StockData/&import_name" dlm=',';
-    input Date :MMDDYY10. Time :hhmmss12. Price :14.7 Volume :9. 
-        ExchangeCode :$2 SalesCondition :$4. CorrectionIndicator :$2. 
-        SequenceNumber :9. TradeStopIndicator :$1. SourceOfTrade :$1.;
+
+/* Plot some series to test */
+
+proc sgplot data= &plotdata;
+	TITLE "Number of ticks per minute";
+	* highlow x=time high=high_p low=low_p / close = close_p;
+	highlow x=time low = low high = high / lineattrs=(color=biyg thickness=7pt) legendlabel='Price Variation';
+	series x=time y=close /legendlabel='Closing Price' lineattrs=(color=red);
+	needle x=time y=volume /y2axis lineattrs=(color=blue thickness=7pt) legendlabel='Volume';;
+	*bubble x=time y=volume size = tickfreq /  LEGENDLABEL='Tick frequency' y2axis datalabel = tickfreq NOOUTLINE;
+	yaxis min=43 grid;
+  	y2axis display=(noticks novalues nolabel) offsetmax=0.6;
+	*xaxis interval = hour;
 run;
+/*
+proc sgplot data=STOCK.customdata&imported_name;
+  band x = time upper = open lower =close / fill;
+  needle x = time y = volume / y2axis;
+  yaxis min=40 grid;
+  y2axis display=(noticks novalues nolabel) offsetmax=0.7;
+ run;
+ 
+TITLE "Number of ticks per minute for stock &imported_name";
+proc sgplot data = STOCK.customdata&imported_name (obs=100);
+    vbar time /response = tickfreq;
+    vbar time /response = volume y2axis;
+run;
+*/
+
 
 TITLE 'DESCRIPTIVE STATISTICS OF PRICE AND VOLUME';
 
@@ -131,4 +152,43 @@ proc export data = testi (drop = tickfreq_2)
    outfile='/folders/myfolders/StockData/intervaldata1.csv'
    dbms=csv
    replace;
+run;
+
+
+/* Save plots (increased dpi ) */
+ODS HTML image_dpi=300 GPATH='/folders/myfolders/Plots' 
+    BODY='/folders/myfolders/Plots/plot.png';
+TITLE 'Opening price for 3.3.2014';
+FOOTNOTE 'One-minute data';
+
+proc sgplot data=STOCK.MinuteData(where=(date='03mar2014'd));
+	series x=time y=Open;
+    refline '12:11:30't / axis=x LABEL='12:11:30 buy' LABELLOC=inside;
+    refline '15:00:00't / axis=x LABEL='15:00:00 sell' LABELLOC=inside;
+    where '09:30:00't <= time <= '16:00:00't;
+    xaxis interval=hour MIN='09:30:00't;
+run;
+
+ODS HTML CLOSE;
+TITLE 'Price for 4.3.2014';
+
+proc sgplot data=STOCK.MinuteData(where=(date='04mar2014'd));
+    series x=time y=Open;
+    refline 43.95 / axis=y LABEL='Buy price';
+run;
+
+TITLE 'Price for 5.3.2014';
+
+proc sgplot data=STOCK.MinuteData(where=(date='05mar2014'd));
+    series x=time y=Open;
+run;
+
+TITLE 'High and Low Prices on 3.3.2014 between 12:00 and 15:30';
+FOOTNOTE 'One-minute data, price variation';
+proc sgplot data=STOCK.MinuteData(where=(date='03mar2014'd));
+	BAND x = time UPPER = High LOWER = Low;
+    refline '12:11:30't / axis=x LABEL='12:11:30 buy' LABELLOC=inside;
+    refline '15:00:00't / axis=x LABEL='15:00:00 sell' LABELLOC=inside;
+    where '12:00:00't <= time <= '15:30:00't;
+    xaxis interval=hour MAX='15:30:00't;
 run;
