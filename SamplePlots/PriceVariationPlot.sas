@@ -1,22 +1,19 @@
 /* 4.3.2014, symbol ITT */
 
+%LET plotdata = STOCK.stockdata14081_5minute(where=('9:00:00't <= Time <= '16:00:00't));
 
-
-%LET plotdata = STOCK.stockdata14081_5minute(where=('09:30:00't <= Aika<= '16:00:00't) rename=time=Aika);
-%LET plotdata_1min = STOCK.stockdata14081_1minute(where=('11:00:00't <= Time <= '14:00:00't));
-
-proc sgplot data=&plotdata_1min;
-    TITLE "Hintamuutokset ja hälytykset";
+proc sgplot data=&plotdata;
+    TITLE "Number of ticks per minute";
     * highlow x=time high=high_p low=low_p / close = close_p;
-    *highlow x=time low=low high=high / lineattrs=(color=biyg thickness=7pt) 
+    highlow x=time low=low high=high / lineattrs=(color=biyg thickness=7pt) 
         legendlabel='Price Variation';
-    series x=time y=close/legendlabel='Closing Price' lineattrs=(color=red);
+    series x=time y=close /legendlabel='Closing Price' lineattrs=(color=red);
     needle x=time y=volume /y2axis lineattrs=(color=blue thickness=7pt) 
         legendlabel='Volume';
     yaxis min=43 grid;
-    refline '11:40:00't / axis=x LABEL='Ostohetki' LABELLOC=inside;
-    refline '12:44:00't / axis=x LABEL='Ensimmäinen hälytys' LABELLOC=inside;
-    refline '13:58:00't / axis=x LABEL='Toinen hälytys' LABELLOC=inside;
+    refline '11:49:00't / axis=x LABEL='Buy' LABELLOC=inside;
+    refline '12:44:00't / axis=x LABEL='First alert' LABELLOC=inside;
+    refline '13:58:00't / axis=x LABEL='Second alert' LABELLOC=inside;
     y2axis display=(noticks novalues nolabel) offsetmax=0.6;
 run;
 
@@ -34,28 +31,28 @@ run;
 proc template ;
     define statgraph stockprice;
         begingraph /  designwidth=10.5in designheight=5.5in;
-        entrytitle "Hinta, vaihtomäärä ja tapahtumien määräsymbolilla ITT";
-        entryfootnote "Hinnan vaihtelu ja päätöshinta, vaihtomäärä ja tapahtumien määrä, 5 minuutin aikaväli";
+        entrytitle "Stock Price, Volume and Tick Frequency of symbol ITT";
+        entryfootnote "Price Variation and Closing Price, Volume and Tick Frequency, 5 minute intervals";
         layout lattice / columns=1 columndatarange=union rowweights=(0.7 0.3);
         	columnaxes;
         		columnaxis / offsetmin=0.02 griddisplay=on  ;
         	endcolumnaxes;
         	column2axes;
-        		columnaxis /  label='Aika';
+        		columnaxis /  label='Time';
         	endcolumn2axes;
         	layout overlay / yaxisopts=(LINEAROPTS=(VIEWMIN=43 VIEWMAX=44))
-				xaxisopts=(label='Aika') yaxisopts=(label='Hinta, dollaria') y2axisopts=(offsetmax=0.6 label='Vaihtomäärä');
-        		highlowplot x=Aika high=high low=low / lineattrs=(color=biyg thickness=5pt)
-					legendlabel='Hinnan vaihtelu' name='vari';
-        		seriesplot x=Aika y=close /legendlabel='Hinnan vaihtelu' lineattrs=(color=red)
-					legendlabel='Päätöshinta' name = 'cprice';
-        		needleplot x=Aika y=volume / yaxis=y2 lineattrs=(color=blue thickness=5pt)
-					legendlabel='Vaihtomäärä' name='vol' datalabel=volume_lab;
+				xaxisopts=(label='Time') yaxisopts=(label='Price') y2axisopts=(offsetmax=0.6 label='Volume');
+        		highlowplot x=time high=high low=low / lineattrs=(color=biyg thickness=5pt)
+					legendlabel='Price Variation' name='vari';
+        		seriesplot x=time y=close /legendlabel='Closing Price' lineattrs=(color=red)
+					legendlabel='Closing Price' name = 'cprice';
+        		needleplot x=time y=volume / yaxis=y2 lineattrs=(color=blue thickness=5pt)
+					legendlabel='Volume' name='vol' datalabel=volume_lab;
         		discretelegend "vol" "cprice" "vari" / across=1 location=inside border=off halign=left valign=top  opaque=true;
         	endlayout;
-        	layout overlay / yaxisopts=(label='Tapahtumien tiheys') xaxisopts=(label='Aika');
-        		needleplot x=Aika y=tickfreq /lineattrs=(color=FIREBRICK thickness=5pt)
-					legendlabel='Tapahtumien määrä' name='ticks' datalabel=tickfreq_lab;
+        	layout overlay / yaxisopts=(label='Tick Frequency') xaxisopts=(label='Time');
+        		needleplot x=time y=tickfreq /lineattrs=(color=FIREBRICK thickness=5pt)
+					legendlabel='Tick Frequency' name='ticks' datalabel=tickfreq_lab;
         		discretelegend "ticks" / across=1 location=inside border=off halign=left valign=top  opaque=true;
         	endlayout;
         endlayout;
