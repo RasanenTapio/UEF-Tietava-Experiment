@@ -19,7 +19,7 @@ Historical Equities Data is available at https://www.tickdata.com/historical-mar
 Both  tick data and time series data with one minute intervals are available.
 
 ### Scripts and codes
-**Timeseries.sas** is used to generate evenly spaced time series from inhomogenous time series. File also includes code to generate some awesome plots.
+**Timeseries.sas** is used to generate evenly spaced time series from inhomogenous time series. File **PriceVariationPlot.sas** includes code to generate awesome plots.
 **TestAlgorith.r** is used to test algorithm. Data generated with Timeseries.sas from trade data is used in algorithm testing. Alert is reported and results are plotted as fanchart and exported as csv.
 ### Sample Plots
 Some sample plots created with scripts and **PriceVariationPlot.sas** are included.
